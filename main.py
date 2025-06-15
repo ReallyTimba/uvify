@@ -1,18 +1,22 @@
 import flet as ft
 import requests
+import sqlite3
+
+from dateutil.utils import within_delta
 
 
 def main(page: ft.Page):
-    page.title = 'Weather Helper' # window title
-    page.theme_mode = 'dark' # lets change the app theme
+    page.title = 'Weatherly' # window title
+    page.theme_mode = 'dark' # it let us change the app theme
     page.vertical_alignment = ft.MainAxisAlignment.CENTER # sets vertical alignment of all the elements in the center of the window
     page.window.width = 540
     page.window.height = 960
+    page.bgcolor = None # ft.Colors.GREEN_200 -> good one
 
 
     # WIDGETS
 
-    user_data = ft.TextField(label='Enter the city', width=400, on_submit=lambda e: get_weather(e))
+    user_data = ft.TextField(label='Search your city', width=400, on_submit=lambda e: get_weather(e))
     theme_button = ft.IconButton(ft.Icons.DARK_MODE, on_click=lambda e: change_theme(e))
     weather_data = ft.Text('')
     uv_icon = ft.Image(src="images/uv_low.webp", width=50, height=50, visible=False)
@@ -25,6 +29,7 @@ def main(page: ft.Page):
 
 
     # EVENTS
+
 
     def get_weather(e):
         if len(user_data.value) < 2:
@@ -57,6 +62,21 @@ def main(page: ft.Page):
         page.update()
 
 
+    def set_city(e):
+        # SETS A CITY TO GET THE WEATHER INFO
+
+        page.clean()
+        get_weather(e) # gettings weather info
+
+        page.navigation_bar.destinations[1].disabled = False # enabling the weather tab
+        page.add(weather_page)
+
+        page.navigation_bar.destinations[0].visible = False # hiding the track tab (because the city is already set)
+        page.navigation_bar.selected_index = 0 # because of the hidden "Track" tab, selected_index = 0 opens the weather info page
+
+        page.update()
+
+
     def change_theme(e):
         page.theme_mode = 'light' if page.theme_mode == 'dark' else 'dark'
         theme_button.icon = ft.Icons.LIGHT_MODE if page.theme_mode == 'light' else ft.Icons.DARK_MODE
@@ -66,26 +86,48 @@ def main(page: ft.Page):
         i = page.navigation_bar.selected_index
         page.clean()
 
-        if i == 0:
-            page.add(welcome_page)
-        elif i == 1:
-            page.add(weather_page)
-        elif i == 2:
-            page.add(settings_page)
+        if page.navigation_bar.destinations[0].label == 'Track' and page.navigation_bar.destinations[0].visible is True:
+
+            if i == 0:
+                page.add(welcome_page)
+            elif i == 1:
+                page.add(weather_page)
+            elif i == 2:
+                page.add(settings_page)
+
+        else:
+            if i == 0:
+                page.add(weather_page)
+            elif i == 1:
+                page.add(settings_page)
 
 
         page.update()
 
 
     def get_context(e):
-        pass
+
+        welcome_page.controls[1].controls[0].content = user_data
+        welcome_page.controls[1].controls[1].content = ft.ElevatedButton(text='Set', on_click=lambda e: set_city(e))
+
+        page.update()
+
+    def torredembarra(e):
+        page.clean()
+
+        page.add(
+            weather_page
+        )
+
 
     # NAVIGATION BAR
 
     page.navigation_bar = ft.NavigationBar(
         destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.ADD_LOCATION_OUTLINED, label="Track",
+                                        selected_icon=ft.Icons.ADD_LOCATION_SHARP),
             ft.NavigationBarDestination(icon=ft.Icons.WB_SUNNY_OUTLINED, label="Weather",
-                                        selected_icon=ft.Icons.SUNNY),
+                                        selected_icon=ft.Icons.SUNNY, disabled=True), # is not able on first login
             ft.NavigationBarDestination(icon=ft.Icons.SETTINGS_OUTLINED, label="Settings",
                                         selected_icon=ft.Icons.SETTINGS_SHARP),
 
@@ -96,46 +138,76 @@ def main(page: ft.Page):
 
     # PAGE WIDGETS
 
-    title_row = ft.Row([theme_button, ft.Text('Weather App')],
+    title_row_weather = ft.Row([theme_button, ft.Text('Weather App')],
                        alignment=ft.MainAxisAlignment.CENTER
                        )
 
     main_col = ft.Column(
         [
-                        ft.Row([user_data], alignment=ft.MainAxisAlignment.CENTER),
+
                         ft.Row([weather_data, uv_icon], alignment=ft.MainAxisAlignment.CENTER),
                         ft.Row([uv_progress], alignment=ft.MainAxisAlignment.CENTER),
-                        ft.Row([ft.ElevatedButton(text='Get', on_click=lambda e: get_weather(e))],
-                               alignment=ft.MainAxisAlignment.CENTER)], # column alignment
+
+        ], # column alignment
 
                     alignment=ft.MainAxisAlignment.CENTER,
                     expand=True
     ) # column alignment
 
 
+    welcome_updated_col = ft.Column(
+                [
+
+                    ft.Row([user_data], alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Row([ft.ElevatedButton(text='Set', on_click=lambda e: get_weather(e))], alignment=ft.MainAxisAlignment.CENTER)
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                expand=True
+            )
+
 
 
     # PAGES
 
 
-    welcome_page = page.add(
+    welcome_page = ft.Column( # general block
+        [
+            ft.Row( # Row 1 -> Header content
+                [
+                    ft.Text("Welcome to Weatherly!", text_align=ft.alignment.center, size=25)
+                ],
+                alignment=ft.MainAxisAlignment.CENTER # Row 1 -> settings
+            ),
+            ft.Column(
+                [
+                    ft.Container(content=ft.FilledButton("Start following your city", width=300, height=38, style=ft.ButtonStyle(text_style=ft.TextStyle(size=20)), on_click=get_context), alignment=ft.alignment.center),
+                    ft.Container(content=ft.TextButton("Are you from Torredembarra?", on_click=torredembarra), alignment=ft.alignment.center)
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                expand=True
+            )
+        ],
+        expand=True # -> general block (Column settings)
 
     )
 
     weather_page = ft.Column([
-        title_row,
+        title_row_weather,
         main_col
         ],
         expand=True
     )
 
-    settings_page = ft.Row(
-        [ft.Text("Settings")],
-        alignment=ft.MainAxisAlignment.CENTER
+    settings_page = ft.Column(
+        [
+            ft.Row([ft.Text("Settings")], alignment=ft.MainAxisAlignment.CENTER)
+
+        ],
+        alignment=ft.MainAxisAlignment.START
     )
 
     page.add(
-        weather_page
+        welcome_page
     )
 
 
