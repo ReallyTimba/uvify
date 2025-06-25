@@ -1,13 +1,13 @@
-import time
-from itertools import pairwise
-
 import flet as ft
 import requests
 import sqlite3
-import os
 import json
-import flet.canvas as cv
-import math
+
+import calc
+import skin_selector as ss
+
+SKIN_GRADES = dict(I=20, II=25, III=33, IV=43, V=60, VI=80)
+
 
 def deploy_db():
     db = sqlite3.connect('data.db1')
@@ -15,11 +15,12 @@ def deploy_db():
     cur.execute("""CREATE TABLE IF NOT EXISTS logged (
         id INTEGER PRIMARY KEY,
         user_logged INTEGER,
-        city_set TEXT
+        city_set TEXT,
+        skin TEXT
     )""")
     cur.execute("SELECT * FROM logged WHERE user_logged = 1")
     if not cur.fetchone():
-        cur.execute("INSERT INTO logged (user_logged, city_set) VALUES (?, ?)", (1, None))
+        cur.execute("INSERT INTO logged (user_logged, city_set, skin) VALUES (?, ?, ?)", (1, None, None))
     db.commit()
     db.close()
 
@@ -46,6 +47,7 @@ def main(page: ft.Page):
 
     uv_data = ft.Text('')
     uv_progress = ft.ProgressBar(width=400, visible=False)
+    uv_spf = ft.Text('')
 
     # General
 
@@ -71,15 +73,15 @@ def main(page: ft.Page):
 
     sunrise = ft.Text('')
     sunset = ft.Text('')
-    progress = cv.Canvas()
-    progress.shapes.clear()
-    progress.shapes.append(cv.Arc(width=100, height=50, start_angle=math.pi, sweep_angle=math.pi, paint=ft.Paint(ft.Colors.BLUE, stroke_width=10)))
+
 
 
 
     # Buttons
 
     set_button = ft.Row([ft.ElevatedButton(text='Set', on_click=lambda e: set_city(e))], alignment=ft.MainAxisAlignment.CENTER)
+
+    # SKIN
 
 
 
@@ -92,14 +94,14 @@ def main(page: ft.Page):
 
         # Data base user reg
 
-        db = sqlite3.connect('data.db1')  # -> opens the connection with the db
-
-        cur = db.cursor()  # -> sets a cursor to move inside the db
-
-        cur.execute(f"INSERT INTO logged VALUES(NULL, 1, NULL)")
-
-        db.commit()
-        db.close()  # -> To close the connection with the db
+        # db = sqlite3.connect('data.db1')  # -> opens the connection with the db
+        #
+        # cur = db.cursor()  # -> sets a cursor to move inside the db
+        #
+        # cur.execute(f"INSERT INTO logged VALUES(NULL, 1, NULL, NULL)")
+        #
+        # db.commit()
+        # db.close()  # -> To close the connection with the db
 
 
         if len(user_data.value) < 2:
@@ -116,11 +118,13 @@ def main(page: ft.Page):
         API = '48bb86d3877b44dc9ad193043250606' # OpenWeather API key
         URL_CURRENT = f'http://api.weatherapi.com/v1/current.json?key={API}&q={user_data.value}&aqi=yes'
         URL_FORECAST = f'http://api.weatherapi.com/v1/forecast.json?key={API}&q={user_data.value}'
-        URL_HOUR = f'http://api.weatherapi.com/v1/future.json?key={API}&hour=20&q={user_data.value}'
-        URL_SEARCH = f''
+        URL_DAYS3 = f'http://api.weatherapi.com/v1/forecast.json?key={API}&days=3&q={user_data.value}'
+        URL_SEARCH = ''
 
         res_cur = requests.get(URL_CURRENT).json() # gets all the city info
         res_fore = requests.get(URL_FORECAST).json()
+        res_hour20 = requests.get(URL_DAYS3).json()
+
 
         #res_search = requests.get(URL_SEARCH).json()
 
@@ -128,10 +132,15 @@ def main(page: ft.Page):
 
         print(res_cur)
         print(res_fore)
+        print(res_hour20)
 
 
         with open('weather.json', 'w') as file:
             json.dump(res_fore, file, indent=4)
+
+
+        with open('days3.json', 'w') as file1:
+            json.dump(res_hour20, file1, indent=4)
 
         # UVI
 
@@ -140,6 +149,11 @@ def main(page: ft.Page):
 
         uv_progress.visible = True
         uv_progress.value = float(uv / 13)
+
+
+        burn_time = calc.get_burn(uv, ss.MED[ss.get_skin()])
+        uv_spf.value = 'SPF ' + str(calc.get_spf(burn_time, uv, ss.MED[ss.get_skin()]))
+
 
         # General
 
@@ -171,8 +185,8 @@ def main(page: ft.Page):
         db = sqlite3.connect('data.db1')
         cur = db.cursor()
 
-        cur.execute("DELETE FROM logged")  # очистка старых записей
-        cur.execute("INSERT INTO logged (user_logged, city_set) VALUES (?, ?)", (1, res_cur['location']['name']))
+        cur.execute("UPDATE logged SET city_set = ? where user_logged = 1", (res_cur['location']['name'], ))  # очистка старых записей
+        #cur.execute("INSERT INTO logged (user_logged, city_set) VALUES (?, ?)", (1, res_cur['location']['name']))
 
         city_name = res_cur['location']['name']
         user_city.content.value = city_name
@@ -214,8 +228,16 @@ def main(page: ft.Page):
         return city
 
 
+    # def get_skin():
+    #     db = sqlite3.connect('data.db1')  # -> opens the connection with the db
+    #     cur = db.cursor()  # -> sets a cursor to move inside the db
+    #
+    #     cur.execute("SELECT skin FROM logged WHERE user_logged = 1")
+    #     skin_color = cur.fetchone()[0]
+    #
+    #     return skin_color
 
-        #page.update()
+    #page.update()
 
     def change_theme(e):
         page.theme_mode = 'light' if page.theme_mode == 'dark' else 'dark'
@@ -306,7 +328,7 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN
     )
 
-    wind_info = ft.Container(content=ft.Column([ft.Text('Wind Speed'), wind_vel], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.BLUE, border_radius=10, padding=15)
+    wind_info = ft.Container(content=ft.Column([ft.Text('Wind Speed'), wind_vel], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.BLUE, border_radius=10, padding=ft.padding.only(left=210, right=210, top=15, bottom=15))
     sun_info = ft.Container(content=ft.Column([ft.Text('Sun Time'), sunrise, sunset], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.BLUE, border_radius=10, padding=30)
     air_info = ft.Container(ft.Column([ft.Text('Air Quality', color=ft.Colors.BLACK), aqi_co, aqi_no2, aqi_so2], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.WHITE, border_radius=10, padding=30)
 
@@ -315,8 +337,8 @@ def main(page: ft.Page):
         [
                         ft.Row([weather_icon, weather_descr], alignment=ft.MainAxisAlignment.CENTER),
                         ft.Row([act_temp], alignment=ft.MainAxisAlignment.SPACE_EVENLY),
-                        ft.Row([uv_data], alignment=ft.MainAxisAlignment.CENTER),
-                        ft.Row([uv_progress], alignment=ft.MainAxisAlignment.CENTER),
+                        ft.Row([uv_data, uv_spf], alignment=ft.MainAxisAlignment.CENTER),
+                        #ft.Row([uv_progress], alignment=ft.MainAxisAlignment.CENTER),
                         ft.Row([wind_info], alignment=ft.MainAxisAlignment.CENTER),
                         ft.Text(''), # change this space
                         ft.Row([air_info], alignment=ft.MainAxisAlignment.CENTER),
@@ -377,10 +399,19 @@ def main(page: ft.Page):
 
     settings_page = ft.Column(
         [
-            ft.Row([ft.Text("Settings")], alignment=ft.MainAxisAlignment.CENTER)
+            ft.Row([ft.Text("Settings")], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Column(
+                [
+                ft.Text('Your skin color'),
+                ss.dd
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                expand=True
+            )
 
         ],
-        alignment=ft.MainAxisAlignment.START
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        expand=True
     )
 
     # Logged or not check
@@ -395,6 +426,7 @@ def main(page: ft.Page):
         page.add(weather_page)
     else:
         page.add(welcome_page)
+
 
 
 
