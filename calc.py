@@ -5,18 +5,18 @@ def get_burn(uvi, med):
 
 
     try:
-        burn_time = (med / 9) / uvi
-
+        burn_time = (med / (uvi * 0.025)) // 60
         return burn_time
     except ZeroDivisionError:
         return 0
 
 
-def get_spf(time_to_burn, uvi, med):
+def get_spf(uvi, med):
     try:
-        spf = (120 / get_burn(uvi, med)) * F
+        spf = 120 / get_burn(uvi, med)
+        print(spf)
 
-        if spf <= 15:
+        if 4 < spf <= 15:
             return 15
 
         elif 15 < spf <= 30:
@@ -28,6 +28,18 @@ def get_spf(time_to_burn, uvi, med):
         elif spf > 50:
             return "50+"
 
+        else:
+            return 'Not Required'
+
     except ZeroDivisionError:
         return 'Not Required'
 
+
+def get_real_uv(clouds, uv):
+        cloud_percent = clouds / 100
+
+        func = 0.3 + 0.7 * (1 - cloud_percent)
+
+        real_uv = uv * func
+
+        return real_uv

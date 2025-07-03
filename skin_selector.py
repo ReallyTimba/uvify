@@ -2,7 +2,6 @@ import flet as ft
 import sqlite3
 
 
-
 SKIN_TONES = [
     {'name': 'Pale', 'color': '#FFDFC4'},
     {'name': 'Fair', 'color': '#F0D5BE'},
@@ -31,7 +30,7 @@ color_map = {tone['name']: tone['color'] for tone in SKIN_TONES}
 
 med = 1
 
-def set_skin(e=None, dropdown=None, page=None, color_map=None):
+def set_skin(e, dropdown, page=None, color_map=None):
     page = e.page
     _color = color_map.get(dropdown.value)
 
@@ -54,6 +53,7 @@ def set_skin(e=None, dropdown=None, page=None, color_map=None):
     db.close()
 
 
+
     page.update()
 
     print(med)
@@ -72,11 +72,28 @@ def get_skin():
     else:
         return 'Pale'
 
-dd = ft.Dropdown(
-    options=options,
-    width=200,
-    value=get_skin(),
-    leading_icon=ft.Icon(ft.Icons.CIRCLE, color=color_map[get_skin()]),
-    on_change=lambda e: set_skin(e, dropdown=dd, color_map=color_map),
 
-)
+def on_change(e, dropdown, page=None, color_map=None):
+    set_skin(e, dropdown, page, color_map)
+
+
+
+
+def dropdown(func):
+
+    dd = ft.Dropdown(
+        options=options,
+        width=200,
+        value=get_skin(),
+        leading_icon=ft.Icon(ft.Icons.CIRCLE, color=color_map[get_skin()]),
+        on_change=lambda e: on_change(e, dropdown=dd, color_map=color_map),
+
+    )
+
+    def on_change(e, dropdown=None, page=None, color_map=None):
+        set_skin(e, dropdown, page, color_map)
+
+        func()
+
+
+    return dd

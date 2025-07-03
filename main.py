@@ -2,128 +2,58 @@ import flet as ft
 import requests
 import sqlite3
 import json
+import datetime
+
+from db_manager import Database
+Database.initialize()
 
 import calc
 import skin_selector as ss
+from ui import UIBuilder
 
-SKIN_GRADES = dict(I=20, II=25, III=33, IV=43, V=60, VI=80)
-
-
-def deploy_db():
-    db = sqlite3.connect('data.db1')
-    cur = db.cursor()
-    cur.execute("""CREATE TABLE IF NOT EXISTS logged (
-        id INTEGER PRIMARY KEY,
-        user_logged INTEGER,
-        city_set TEXT,
-        skin TEXT
-    )""")
-    cur.execute("SELECT * FROM logged WHERE user_logged = 1")
-    if not cur.fetchone():
-        cur.execute("INSERT INTO logged (user_logged, city_set, skin) VALUES (?, ?, ?)", (1, None, None))
-    db.commit()
-    db.close()
-
-
-
-def main(page: ft.Page):
-    deploy_db()
-    page.title = 'Weatherly' # window title
-    page.theme_mode = 'dark' # it let us change the app theme
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER # sets vertical alignment of all the elements in the center of the window
-    page.window.width = 540
-    page.window.height = 960
-    page.bgcolor = None # ft.Colors.GREEN_200 -> good one
-
-
-
-    # WIDGETS
-
-    user_data = ft.TextField(label='Search your city', width=400, on_submit=lambda e: get_weather(e))
-    theme_button = ft.IconButton(ft.Icons.DARK_MODE, on_click=lambda e: change_theme(e))
-
-
-    # UVI
-
-    uv_data = ft.Text('')
-    uv_progress = ft.ProgressBar(width=400, visible=False)
-    uv_spf = ft.Text('')
-
-    # General
-
-    weather_descr = ft.Text('')
-    weather_icon = ft.Image(src="https://cdn.weatherapi.com/weather/64x64/night/113.png", width=50, height=50,
-                            visible=False)
-    act_temp = ft.Text('')
-
-
-    # Wind
-
-    wind_vel = ft.Text('')
-
-    # AQI
-    black = ft.Colors.BLACK
-
-
-    aqi_co = ft.Text('', color=black)
-    aqi_no2 = ft.Text('', color=black)
-    aqi_so2 = ft.Text('', color=black)
-
-    # SUN
-
-    sunrise = ft.Text('')
-    sunset = ft.Text('')
-
-
-
-
-    # Buttons
-
-    set_button = ft.Row([ft.ElevatedButton(text='Set', on_click=lambda e: set_city(e))], alignment=ft.MainAxisAlignment.CENTER)
-
-    # SKIN
+from config import API
 
 
 
 
 
-    # EVENTS
+class UVifyApp:
+    def __init__(self, page):
+
+        self.page = page
+        self.page.title = 'UVify'  # window title
+        self.page.theme_mode = 'dark'  # it let us change the app theme
+        self.page.vertical_alignment = ft.MainAxisAlignment.CENTER  # sets vertical alignment of all the elements in the center of the window
+        self.page.window.width = 540
+        self.page.window.height = 960
+        self.page.bgcolor = None  # ft.Colors.GREEN_200 -> good one
+        self.page.adaptive = True
 
 
-    def get_weather(e=None):
+        self.ui = UIBuilder(self)
 
-        # Data base user reg
-
-        # db = sqlite3.connect('data.db1')  # -> opens the connection with the db
-        #
-        # cur = db.cursor()  # -> sets a cursor to move inside the db
-        #
-        # cur.execute(f"INSERT INTO logged VALUES(NULL, 1, NULL, NULL)")
-        #
-        # db.commit()
-        # db.close()  # -> To close the connection with the db
+        self.load_data()
 
 
-        if len(user_data.value) < 2:
-            uv_data.value = ''
-            page.update()
+    def get_weather(self, e=None):
+        if len(self.ui.user_data.value) < 2:
+            self.ui.uv_data.value = ''
+            self.page.update()
             return
 
         else:
-            uv_data.value = ''
+            self.ui.uv_data.value = ''
 
 
-            page.update()
+            self.page.update()
 
-        API = '48bb86d3877b44dc9ad193043250606' # OpenWeather API key
-        URL_CURRENT = f'http://api.weatherapi.com/v1/current.json?key={API}&q={user_data.value}&aqi=yes'
-        URL_FORECAST = f'http://api.weatherapi.com/v1/forecast.json?key={API}&q={user_data.value}'
-        URL_DAYS3 = f'http://api.weatherapi.com/v1/forecast.json?key={API}&days=3&q={user_data.value}'
+         # OpenWeather API key
+        URL_CURRENT = f'http://api.weatherapi.com/v1/current.json?key={API}&q={self.ui.user_data.value}&aqi=yes'
+        URL_FORECAST = f'http://api.weatherapi.com/v1/forecast.json?key={API}&days=3&q={self.ui.user_data.value}'
         URL_SEARCH = ''
 
         res_cur = requests.get(URL_CURRENT).json() # gets all the city info
         res_fore = requests.get(URL_FORECAST).json()
-        res_hour20 = requests.get(URL_DAYS3).json()
 
 
         #res_search = requests.get(URL_SEARCH).json()
@@ -132,305 +62,232 @@ def main(page: ft.Page):
 
         print(res_cur)
         print(res_fore)
-        print(res_hour20)
+        print(res_cur['current']['cloud'])
 
 
-        with open('weather.json', 'w') as file:
+        with open('requests/weather.json', 'w') as file:
             json.dump(res_fore, file, indent=4)
 
 
-        with open('days3.json', 'w') as file1:
-            json.dump(res_hour20, file1, indent=4)
+        with open('requests/days3.json', 'w') as file:
+            json.dump(res_fore, file, indent=4)
 
         # UVI
 
+
         uv = res_cur['current']['uv']
-        uv_data.value = 'UV Index: ' + str(uv)
+        # uv = calc.get_real_uv(res_cur['current']['cloud'], res_cur['current']['uv'])
+        self.ui.uv_data.value = 'UV Index: ' + str(uv)
 
-        uv_progress.visible = True
-        uv_progress.value = float(uv / 13)
+        self.ui.uv_progress.visible = True
+        self.ui.uv_progress.value = float(uv / 13)
 
 
-        burn_time = calc.get_burn(uv, ss.MED[ss.get_skin()])
-        uv_spf.value = 'SPF ' + str(calc.get_spf(burn_time, uv, ss.MED[ss.get_skin()]))
 
+        self.ui.uv_spf.value = 'SPF ' + str(calc.get_spf(uv, ss.MED[ss.get_skin()]))
+
+        self.ui.act_temp.value = str(res_cur['current']['temp_c']) + " °C"
+        self.ui.weather_descr.value = res_cur['current']['condition']['text']
+        self.ui.weather_icon.visible = True
+        self.ui.weather_icon.src = "https:" + res_cur['current']['condition']['icon']
+
+        # UVI forecasts
+        uv_forecasts1 = {}
+        uv_forecasts2 = {}
+        uv_forecasts3 = {}
+
+        for h in range(0, 24):
+            uv_forecasts1[h] = res_fore['forecast']['forecastday'][0]['hour'][h]['uv']
+
+        for h in range(0, 24):
+            uv_forecasts2[h] = res_fore['forecast']['forecastday'][1]['hour'][h]['uv']
+
+        for h in range(0, 24):
+            uv_forecasts3[h] = res_fore['forecast']['forecastday'][2]['hour'][h]['uv']
+
+
+        # Adding to the ExpansionPanel
+
+
+        # Day 1
+        self.ui.uv_fore.controls[0].content.title.controls.append(ft.Text(res_fore['forecast']['forecastday'][0]['date'][5:10].replace('-', '/'), size=25))
+
+        year = res_fore['forecast']['forecastday'][0]['date'][:4]
+        month = res_fore['forecast']['forecastday'][0]['date'][5:7]
+        day = y = res_fore['forecast']['forecastday'][0]['date'][8:]
+        print(year, month, day)
+        date_converter = datetime.date(int(year), int(month), int(day))
+
+        week = date_converter.isoweekday()
+        print(week)
+
+        if week == datetime.date.today().isoweekday():
+            self.ui.uv_fore.controls[0].header.title.value = 'Today'
+
+
+
+        for k, v in uv_forecasts1.items():
+
+
+
+
+
+
+            fore_icon = res_fore['forecast']['forecastday'][0]['hour'][k]['condition']['icon']
+
+            self.ui.uv_fore.controls[0].content.subtitle.controls.append(ft.Column([ft.Text(res_fore['forecast']['forecastday'][0]['hour'][k]['time'][11:], size=20, text_align=ft.alignment.center), ft.Image(src=str("https:" + fore_icon), width=100)], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER))
+
+
+
+
+
+
+
+
+        self.page.update()
+
+
+
+
+
+
+        print(uv_forecasts1)
+        print(uv_forecasts2)
+        print(uv_forecasts3)
 
         # General
 
-        act_temp.value = str(res_cur['current']['temp_c']) + " °C"
-        weather_descr.value = res_cur['current']['condition']['text']
-        weather_icon.visible = True
-        weather_icon.src = "https:" + res_cur['current']['condition']['icon']
+
 
         # Wind
 
-        wind_vel.value = str(res_cur['current']['wind_kph']) + " kph"
+        self.ui.wind_vel.value = str(res_cur['current']['wind_kph']) + " km/h"
 
         # AQI
 
-        aqi_co.value = "CO: " + str(res_cur['current']['air_quality']['co'])
-        aqi_no2.value = "NO2: " + str(res_cur['current']['air_quality']['no2'])
-        aqi_so2.value = "SO2: " + str(res_cur['current']['air_quality']['so2'])
+        aqi_units = " μg/m3"
+
+        self.ui.aqi_co.value = "CO: " + str(res_cur['current']['air_quality']['co']) + aqi_units
+        self.ui.aqi_no2.value = "NO2: " + str(res_cur['current']['air_quality']['no2']) + aqi_units
+        self.ui.aqi_so2.value = "SO2: " + str(res_cur['current']['air_quality']['so2']) + aqi_units
 
 
         # SUN
 
-        sunrise.value = res_fore['forecast']['forecastday'][0]['astro']['sunrise']
-        sunset.value = res_fore['forecast']['forecastday'][0]['astro']['sunset']
+        sunrise24 = datetime.datetime.strptime(res_fore['forecast']['forecastday'][0]['astro']['sunrise'], "%I:%M %p").strftime("%H:%M") # 24-hour format time
+        sunset24 = datetime.datetime.strptime(res_fore['forecast']['forecastday'][0]['astro']['sunset'], "%I:%M %p").strftime("%H:%M") # 24-hour format time
+
+        self.ui.sunrise.value = "Sunrise time: " + sunrise24
+        self.ui.sunset.value = "Sunset time: " + sunset24
 
 
 
+        # DB UPDATE
 
 
         db = sqlite3.connect('data.db1')
         cur = db.cursor()
 
-        cur.execute("UPDATE logged SET city_set = ? where user_logged = 1", (res_cur['location']['name'], ))  # очистка старых записей
-        #cur.execute("INSERT INTO logged (user_logged, city_set) VALUES (?, ?)", (1, res_cur['location']['name']))
+        cur.execute("UPDATE logged SET city_set = ? where user_logged = 1",
+                    (res_cur['location']['name'],))
+        # cur.execute("INSERT INTO logged (user_logged, city_set) VALUES (?, ?)", (1, res_cur['location']['name']))
 
         city_name = res_cur['location']['name']
-        user_city.content.value = city_name
-
+        self.ui.user_city.content.value = city_name
 
         db.commit()
         db.close()
 
 
 
-
-        page.update()
-
+        self.page.update()
 
 
-    def set_city(e):
+    def set_city(self, e=None):
         # SETS A CITY TO GET THE WEATHER INFO
 
-        page.clean()
-        get_weather(e) # gettings weather info
+        self.page.clean()
+        self.get_weather(e) # gettings weather info
 
-        page.update()
-        page.navigation_bar.destinations[1].disabled = False # enabling the weather tab
-        page.add(weather_page)
+        self.page.update()
+        self.page.navigation_bar.destinations[1].disabled = False # enabling the weather tab
+        self.page.add(self.ui.weather_page)
 
-        page.navigation_bar.destinations[0].visible = False # hiding the track tab (because the city is already set)
-        page.navigation_bar.selected_index = 0 # because of the hidden "Track" tab, selected_index = 0 opens the weather info page
+        self.page.navigation_bar.destinations[0].visible = False # hiding the track tab (because the city is already set)
+        self.page.navigation_bar.selected_index = 0 # because of the hidden "Track" tab, selected_index = 0 opens the weather info page
 
-        page.update()
-
-
-    def get_city():
-        db = sqlite3.connect('data.db1')  # -> opens the connection with the db
-        cur = db.cursor()  # -> sets a cursor to move inside the db
-
-        cur.execute("SELECT city_set FROM logged WHERE user_logged = 1")
-        city = cur.fetchone()[0]
-
-        return city
+        self.page.update()
 
 
-    # def get_skin():
-    #     db = sqlite3.connect('data.db1')  # -> opens the connection with the db
-    #     cur = db.cursor()  # -> sets a cursor to move inside the db
-    #
-    #     cur.execute("SELECT skin FROM logged WHERE user_logged = 1")
-    #     skin_color = cur.fetchone()[0]
-    #
-    #     return skin_color
 
-    #page.update()
+    def change_theme(self, e):
+        self.page.theme_mode = 'light' if self.page.theme_mode == 'dark' else 'dark'
+        self.ui.theme_button.icon = ft.Icons.LIGHT_MODE if self.page.theme_mode == 'light' else ft.Icons.DARK_MODE
+        self.page.update()
 
-    def change_theme(e):
-        page.theme_mode = 'light' if page.theme_mode == 'dark' else 'dark'
-        theme_button.icon = ft.Icons.LIGHT_MODE if page.theme_mode == 'light' else ft.Icons.DARK_MODE
-        page.update()
+    def navigate(self, e):
+        i = self.page.navigation_bar.selected_index
+        self.page.clean()
 
-    def navigate(e):
-        i = page.navigation_bar.selected_index
-        page.clean()
-
-        if page.navigation_bar.destinations[0].label == 'Track' and page.navigation_bar.destinations[0].visible is True:
+        if self.page.navigation_bar.destinations[0].label == 'Track' and self.page.navigation_bar.destinations[0].visible is True:
 
             if i == 0:
-                page.add(welcome_page)
+                self.page.add(self.ui.welcome_page)
             elif i == 1:
-                page.add(weather_page)
+                self.page.add(self.ui.weather_page)
             elif i == 2:
-                page.add(settings_page)
+                self.page.add(self.ui.settings_page)
 
         else:
             if i == 0:
-                page.add(weather_page)
+                self.page.add(self.ui.weather_page)
             elif i == 1:
-                page.add(settings_page)
+                self.page.add(self.ui.settings_page)
 
 
-        page.update()
+        self.page.update()
 
 
-    def get_context(e):
+    def get_context(self, e):
 
-        welcome_page.controls[1].controls[0].content = user_data
-        welcome_page.controls[1].controls[1].content = set_button
+        self.ui.welcome_page.controls[1].controls[0].content = self.ui.user_data
+        self.ui.welcome_page.controls[1].controls[1].content = self.ui.set_button
 
-        page.update()
-
-
-    def reset_city(e=None):
-        page.clean()
-        page.navigation_bar.destinations[0].visible = True
-        page.navigation_bar.destinations[1].disabled = True
-        page.navigation_bar.selected_index = 0
+        self.page.update()
 
 
+    def reset_city(self, e=None):
+        self.page.clean()
+        self.page.navigation_bar.destinations[0].visible = True
+        self.page.navigation_bar.destinations[1].disabled = True
+        self.page.navigation_bar.selected_index = 0
 
-        page.add(
-            welcome_updated_col
+
+
+        self.page.add(
+            self.ui.welcome_updated_col
         )
 
-        page.update()
-
-    def torredembarra(e):
-        page.clean()
-
-        page.add(
-            weather_page
-        )
+        self.page.update()
 
 
-    # NAVIGATION BAR
-
-    page.navigation_bar = ft.NavigationBar(
-        destinations=[
-            ft.NavigationBarDestination(icon=ft.Icons.ADD_LOCATION_OUTLINED, label="Track",
-                                        selected_icon=ft.Icons.ADD_LOCATION_SHARP),
-            ft.NavigationBarDestination(icon=ft.Icons.WB_SUNNY_OUTLINED, label="Weather",
-                                        selected_icon=ft.Icons.SUNNY, disabled=True), # is not able on first login
-            ft.NavigationBarDestination(icon=ft.Icons.SETTINGS_OUTLINED, label="Settings",
-                                        selected_icon=ft.Icons.SETTINGS_SHARP),
-
-        ], on_change=lambda e: navigate(e)
-    )
+    def load_data(self):
+        city_value = Database.get_city()
+        if city_value:
+            self.ui.user_data.value = city_value
+            self.get_weather()
+            self.page.navigation_bar.destinations[1].disabled = False
+            self.page.navigation_bar.destinations[0].visible = False
+            self.page.navigation_bar.selected_index = 0
+            self.page.add(self.ui.weather_page)
+        else:
+            self.page.add(self.ui.welcome_page)
 
 
 
-    # PAGE WIDGETS
-    city_text = ft.Container(ft.Text("Your city: "), padding=ft.padding.only(left=8))
-    user_city = ft.TextButton(content=ft.Text(str(get_city()), color=ft.Colors.BLUE), style=ft.ButtonStyle(overlay_color=ft.Colors.TRANSPARENT), on_click=lambda e: reset_city(e))
-    page.update()
-
-    title_row_weather = ft.Row(
-        [
-        ft.Column([city_text, user_city], alignment=ft.MainAxisAlignment.START),
-        ft.Row([theme_button, ft.Text('Theme')],
-               alignment=ft.MainAxisAlignment.CENTER
-               )
-    ],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-    )
-
-    wind_info = ft.Container(content=ft.Column([ft.Text('Wind Speed'), wind_vel], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.BLUE, border_radius=10, padding=ft.padding.only(left=210, right=210, top=15, bottom=15))
-    sun_info = ft.Container(content=ft.Column([ft.Text('Sun Time'), sunrise, sunset], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.BLUE, border_radius=10, padding=30)
-    air_info = ft.Container(ft.Column([ft.Text('Air Quality', color=ft.Colors.BLACK), aqi_co, aqi_no2, aqi_so2], alignment=ft.MainAxisAlignment.CENTER), bgcolor=ft.Colors.WHITE, border_radius=10, padding=30)
-
-
-    main_col = ft.Column( # ALL THE WEATHER INFO IS HERE
-        [
-                        ft.Row([weather_icon, weather_descr], alignment=ft.MainAxisAlignment.CENTER),
-                        ft.Row([act_temp], alignment=ft.MainAxisAlignment.SPACE_EVENLY),
-                        ft.Row([uv_data, uv_spf], alignment=ft.MainAxisAlignment.CENTER),
-                        #ft.Row([uv_progress], alignment=ft.MainAxisAlignment.CENTER),
-                        ft.Row([wind_info], alignment=ft.MainAxisAlignment.CENTER),
-                        ft.Text(''), # change this space
-                        ft.Row([air_info], alignment=ft.MainAxisAlignment.CENTER),
-                        ft.Text(''),
-                        ft.Row(
-                [
-                    sun_info
-                ],
-                alignment=ft.MainAxisAlignment.CENTER),
-
-        ], # column alignment
-
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    expand=True
-    ) # column alignment
-
-
-    welcome_updated_col = ft.Column(
-        [
-                    ft.Row([user_data], alignment=ft.MainAxisAlignment.CENTER),
-                    set_button
-
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                expand=True
-            )
-
-    # PAGES
-
-
-    welcome_page = ft.Column( # general block
-        [
-            ft.Row( # Row 1 -> Header content
-                [
-                    ft.Text("Welcome to Weatherly!", text_align=ft.alignment.center, size=25)
-                ],
-                alignment=ft.MainAxisAlignment.CENTER # Row 1 -> settings
-            ),
-            ft.Column(
-                [
-                    ft.Container(content=ft.FilledButton("Start following your city", width=300, height=38, style=ft.ButtonStyle(text_style=ft.TextStyle(size=20)), on_click=get_context), alignment=ft.alignment.center),
-                    ft.Container(content=ft.TextButton("Are you from Torredembarra?", on_click=torredembarra), alignment=ft.alignment.center)
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-                expand=True
-            )
-        ],
-        expand=True # -> general block (Column settings)
-
-    )
-
-    weather_page = ft.Column([
-        title_row_weather,
-        main_col
-        ],
-        expand=True
-    )
-
-    settings_page = ft.Column(
-        [
-            ft.Row([ft.Text("Settings")], alignment=ft.MainAxisAlignment.CENTER),
-            ft.Column(
-                [
-                ft.Text('Your skin color'),
-                ss.dd
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                expand=True
-            )
-
-        ],
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        expand=True
-    )
-
-    # Logged or not check
-
-    city_value = get_city()
-    if city_value:
-        user_data.value = city_value
-        get_weather()
-        page.navigation_bar.destinations[1].disabled = False
-        page.navigation_bar.destinations[0].visible = False
-        page.navigation_bar.selected_index = 0
-        page.add(weather_page)
-    else:
-        page.add(welcome_page)
-
-
+def main(page: ft.Page):
+    UVifyApp(page)
 
 
 if __name__ == "__main__":
     ft.app(target=main) # run app
-
-#ft.app(target=main, view=ft.AppView.WEB_BROWSER) # -> to run the app in the browser
