@@ -27,7 +27,9 @@ class SemicircleProgress:
     def set_index(self, uv):
         self.uv_index = uv
         self.progress = self.uv_index / self._max_uv
+
         self.build_semicircle()
+
 
 
 
@@ -51,6 +53,7 @@ class SemicircleProgress:
             if uv <= u2:
                 t = (uv - u1) / (u2 - u1)
                 return self.__lerp_color(c1, c2, t)
+
         return stops[-1][1]
 
 
@@ -71,6 +74,8 @@ class SemicircleProgress:
         self._arc_segments = []
         self._segments = 120
 
+        self.color = 'FFFFFF'
+
         for i in range(self._segments):
             start_uv = self._max_uv * i / self._segments
             end_uv = self._max_uv * (i + 1) / self._segments
@@ -81,12 +86,14 @@ class SemicircleProgress:
             end_prop = end_uv / self._max_uv
             if start_prop >= self.progress:
                 break
-            # Цвет градиента для текущего сегмента
-            color = self.__rgb_to_hex(self.__uv_to_color((start_uv + end_uv) / 2, self._stops))
+            # Gradient color for the current segment
+            rgb = self.__uv_to_color((start_uv + end_uv) / 2, self._stops)
+            self.color = self.__rgb_to_hex(rgb)
+
             seg_paint = ft.Paint(
                 style=ft.PaintingStyle.STROKE,
                 stroke_width=self._stroke,
-                color=color,
+                color=self.color,
                 stroke_cap=ft.StrokeCap.ROUND,
                 stroke_join=ft.StrokeJoin.ROUND
             )
@@ -116,6 +123,7 @@ class SemicircleProgress:
                          sweep_angle=pi,
                          use_center=False,
                          paint=self.bg_paint,
+
                      ),
                  ] + self._arc_segments
 
