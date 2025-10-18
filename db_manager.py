@@ -33,8 +33,8 @@ class Database:
         cur.execute("SELECT city_set, country_set FROM logged WHERE user_logged = 1")
         row = cur.fetchone()
 
-        city = None
-        country = None
+        city = ''
+        country = ''
 
         if row:
             city = row[0]

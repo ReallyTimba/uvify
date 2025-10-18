@@ -1,6 +1,6 @@
 import flet as ft
 from translations import t
-from ui import lang
+from ui_builder import lang
 
 
 class ErrorBanner:
@@ -57,41 +57,34 @@ class AdviceBanner:
 
         self.city_name = '_'
 
-        self.advice_text = ft.Text('', width=400)
+        self.advice_text = ft.Text('', size=16, no_wrap=False, expand=True)
 
-        # self.banner = ft.Banner(
-        #     bgcolor='#f27121',
-        #     leading=ft.Icon(name=ft.Icons.TIPS_AND_UPDATES, color='#f8c4ec'),
-        #     content=self.advice_text,
-        #     actions=[
-        #         ft.TextButton(
-        #             text=t('hide_advices', lang), style=ft.ButtonStyle(color=ft.Colors.WHITE),
-        #             on_click=self.hide_banner
-        #         )
-        #     ],
-        #     force_actions_below=True,
-        #
-        # )
         self.banner = ft.Container(
             bgcolor='#f27121',
             padding=ft.padding.only(top=20, bottom=10),
-            content=ft.Column(
+            margin=ft.margin.only(top=40, left=20, right=20),
+
+            content=ft.Container(ft.Column(
                 [
                     ft.Row(
-                    [
-                    ft.Icon(name=ft.Icons.TIPS_AND_UPDATES, color=self.ui.icon_color),
-                    self.advice_text
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER
+                        [
+                            ft.Icon(name=ft.Icons.TIPS_AND_UPDATES, color=self.ui.icon_color),
+                            self.advice_text
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER
                     ),
-                    ft.Container(ft.TextButton(text=t('hide_advices', lang), style=ft.ButtonStyle(color=ft.Colors.WHITE),
-                on_click=self.hide_banner), alignment=ft.alignment.center_right, margin=ft.margin.only(right=20))
+                    ft.Container(ft.TextButton(text=t('hide_advices', lang,), style=ft.ButtonStyle(color=ft.Colors.WHITE, text_style=ft.TextStyle(size=16)),
+                                               on_click=self.hide_banner), alignment=ft.alignment.center_right),
+
 
                 ],
-                alignment=ft.MainAxisAlignment.CENTER
-                ),
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+                margin=ft.margin.only(left=25, right=25)
+            ),
             alignment=ft.alignment.center,
-            border_radius=15
+            border_radius=15,
+
         )
 
 
@@ -102,25 +95,19 @@ class AdviceBanner:
 
 
 
-    def close_banner(self, e=None):
-        # self.app.page.close(self.banner)
+
+    def close_banner(self):
         self.app.page.remove(self.banner, ValueError)
 
 
 
     def hide_banner(self, e=None):
-        # self.app.page.close(self.banner)
-        #
-        # self.app.toggle_advices(e, manual=True)
-        # self.ui.switches.controls[0].controls[1].value = False
-        #
-        # self.app.page.update()
         try:
             self.app.page.remove(self.banner)
         except ValueError:
             pass
 
-        self.app.toggle_advices(e, manual=True)
+        self.app.toggle_advices(e, banner_hide=True)
         self.ui.switches.controls[0].controls[1].value = False
 
         self.app.page.update()

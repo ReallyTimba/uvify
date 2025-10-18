@@ -1,22 +1,39 @@
-F = 1.5
+from translations import t
+from ui_builder import lang
 
 
-def get_burn(uvi, med):
-
+def get_burn(uvi_lst, med, indx=0):
 
     try:
-        burn_time = (med / (uvi * 0.025)) // 60
-        return burn_time
-    except ZeroDivisionError:
+
+        burn_time = (med / (uvi_lst[indx] * 0.025)) // 60
+
+        if burn_time < 60:
+            return int(burn_time)
+        elif burn_time <= 240:
+            return int(burn_time + get_burn(uvi_lst, med, indx+1))
+        else:
+            return 0
+
+    except (ZeroDivisionError, IndexError):
         return 0
 
 
+
+def get_vitamin_d(uvi, med):
+    try:
+        formula = 0.167 * (med/uvi)
+    except ZeroDivisionError:
+        formula = 0
+    t_vitamin_d = round(formula)
+
+    return t_vitamin_d if t_vitamin_d < 60 else 60
+
 def get_spf(uvi, med):
     try:
-        spf = 120 / get_burn(uvi, med)
-        print(spf)
+        spf = (uvi * 15 * 120) / med
 
-        if 4 < spf <= 15:
+        if 5 < spf <= 15:
             return 15
 
         elif 15 < spf <= 30:
@@ -29,10 +46,10 @@ def get_spf(uvi, med):
             return "50+"
 
         else:
-            return 'Not Required'
+            return t('spf_not_req', lang)
 
     except ZeroDivisionError:
-        return 'Not Required'
+        return t('spf_not_req', lang)
 
 
 def get_real_uv(clouds, uv):
@@ -43,3 +60,15 @@ def get_real_uv(clouds, uv):
         real_uv = uv * func
 
         return real_uv
+
+
+def uv_ahead(h, offset):
+    day = 0
+    hour_ahead = h + offset
+
+    if hour_ahead >= 24:
+        day += hour_ahead // 24
+        hour_ahead %= 24
+
+
+    return day, hour_ahead

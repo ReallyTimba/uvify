@@ -33,7 +33,6 @@ def get_cached_places():
 
     return
 
-
 def save_cached_places(data):
     with open(CACHE_MAP, 'w') as file:
         json.dump(data, file)

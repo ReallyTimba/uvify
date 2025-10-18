@@ -81,7 +81,7 @@ class SemicircleProgress:
             end_uv = self._max_uv * (i + 1) / self._segments
             if end_uv > self.uv_index:
                 end_uv = self.uv_index
-            # Пропорция дуги (от 0 до progress)
+            # Arc proportion
             start_prop = start_uv / self._max_uv
             end_prop = end_uv / self._max_uv
             if start_prop >= self.progress:

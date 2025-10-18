@@ -92,4 +92,23 @@ ADVICES = {
     }
 }
 
+SKIN_DESCRS = {
+    'en': {
+        'pale': 'Always burns, no tan',
+        'fair': 'Burns quickly, weak tan',
+        'medium': 'May burn, but tans gradually',
+        'olive': 'Rarely burns and tans easily',
+        'brown': 'Almost never burns, always has a dark tan',
+        'dark_brown': 'Never burns, always keeps very dark.'
 
+    },
+    'es': {
+        'pale': 'Siempre se quema, no se broncea',
+        'fair': 'Se quema rápidamente, bronceado débil',
+        'medium': 'Puede quemarse, pero se broncea gradualmente',
+        'olive': 'Rara vez se quema y se broncea fácilmente',
+        'brown': 'Casi nunca se quema, siempre tiene un bronceado oscuro',
+        'dark_brown': 'Nunca se quema, siempre se mantiene muy oscura'
+    }
+
+}

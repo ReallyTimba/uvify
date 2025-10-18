@@ -2,14 +2,46 @@ import flet as ft
 import flet_map as fm
 import requests
 from caching import *
-
+import flet_geolocator as gl
 
 class Torremap:
-    def __init__(self):
-        self.__build_map()
+    def __init__(self, app=None):
+        self.app = app
+        self.geo = gl.Geolocator(
+            on_position_change=self.on_position_change,
+            on_error=self.on_error
+        )
+
+        self.app.page.overlay.append(self.geo)
+
+        self.build_map()
+
+    def on_position_change(self, e=None):
+        if e.data:
+            lat = e.data['latitude']
+            lon = e.data['longitude']
+            print('GeoLocation: ', lat, lon)
+
+            user_marker = fm.Marker(
+                coordinates=fm.MapLatitudeLongitude(lat, lon),
+                content=ft.Icon(name=ft.Icons.MY_LOCATION, color=ft.Colors.BLUE, size=36)
+                )
+
+            self.marker_layer.markers.append(user_marker)
 
 
-    def _search_places(self):
+
+    def on_error(self, e=None):
+        self.app.page.open(ft.Banner(content=ft.Text('Error'), actions=[]))
+
+    def locate_me(self):
+        if self.geo not in self.app.page.overlay:
+            self.app.page.overlay.append(self.geo)
+            self.app.page.update()
+        self.geo.get_current_position()
+
+
+    def search_places(self):
         self.timeouted = False
 
         cached = get_cached_places()
@@ -65,8 +97,11 @@ class Torremap:
         except requests.exceptions.ReadTimeout:
             self.timeouted = True
 
-    def __build_map(self):
-        places = self._search_places()
+        except:
+            self.timeouted = True
+
+    def build_map(self):
+        places = self.search_places()
         markers = []
         if places:
             markers = [
