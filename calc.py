@@ -27,6 +27,8 @@ def get_vitamin_d(uvi, med):
         formula = 0
     t_vitamin_d = round(formula)
 
+    if med >= 600:
+        return 'no_d'
     return t_vitamin_d if t_vitamin_d < 60 else 60
 
 def get_spf(uvi, med):
@@ -52,14 +54,14 @@ def get_spf(uvi, med):
         return t('spf_not_req', lang)
 
 
-def get_real_uv(clouds, uv):
-        cloud_percent = clouds / 100
-
-        func = 0.3 + 0.7 * (1 - cloud_percent)
-
-        real_uv = uv * func
-
-        return real_uv
+# def get_real_uv(clouds, uv):
+#         cloud_percent = clouds / 100
+#
+#         func = 0.3 + 0.7 * (1 - cloud_percent)
+#
+#         real_uv = uv * func
+#
+#         return real_uv
 
 
 def uv_ahead(h, offset):
@@ -72,3 +74,15 @@ def uv_ahead(h, offset):
 
 
     return day, hour_ahead
+
+
+def auto_font_size(text, base_size, container_width, min_size=10):
+    size = base_size
+
+    while size > min_size:
+        estimated_width = len(text) * size * 0.55
+        if estimated_width <= container_width:
+            break
+        size -= 1
+
+    return size

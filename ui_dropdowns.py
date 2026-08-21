@@ -34,19 +34,19 @@ LANGS = {
 class SkinSelector:
 
     def __init__(self):
-        from ui import lang
+        from ui_builder import lang
         self.lang = lang
 
-        skin_translations = [
-            {'name': t('pale', self.lang), 'color': '#FFDFC4'},
-            {'name': t('fair', self.lang), 'color': '#F0D5BE'},
-            {'name': t('medium', self.lang), 'color': '#E1B899'},
-            {'name': t('olive', self.lang), 'color': '#BD8B5A'},
-            {'name': t('brown', self.lang), 'color': '#8D5524'},
-            {'name': t('dark_brown', self.lang), 'color': '#5A3A1A'},
-        ]
+        # skin_translations = [
+        #     {'name': t('pale', self.lang), 'color': '#FFDFC4'},
+        #     {'name': t('fair', self.lang), 'color': '#F0D5BE'},
+        #     {'name': t('medium', self.lang), 'color': '#E1B899'},
+        #     {'name': t('olive', self.lang), 'color': '#BD8B5A'},
+        #     {'name': t('brown', self.lang), 'color': '#8D5524'},
+        #     {'name': t('dark_brown', self.lang), 'color': '#5A3A1A'},
+        # ]
         self.options = [
-            ft.dropdown.Option(key=t(skin['name'], lang), leading_icon=ft.Icon(ft.Icons.CIRCLE, color=skin['color']))
+            ft.DropdownOption(key=t(skin['name'], lang), leading_icon=ft.Icon(ft.Icons.CIRCLE, color=skin['color']))
             for skin in SKIN_TONES
         ]
 
@@ -85,6 +85,7 @@ class SkinSelector:
         db.close()
 
 
+
         return self.med
 
     def get_skin(self):
@@ -98,8 +99,6 @@ class SkinSelector:
 
 
 
-    def on_change(self, dropdown, color_map=None):
-        self.set_skin(dropdown, self.color_map)
 
 
 
@@ -112,13 +111,13 @@ class SkinSelector:
             width=200,
             value=t(self.get_skin(), self.lang),
             leading_icon=ft.Icon(ft.Icons.CIRCLE, color=self.color_map[self.get_skin()]),
-            on_change=lambda e: on_change(e, dropdown=skin_selector, color_map=self.color_map),
+            on_select=lambda x: on_change(dropdown=skin_selector, color_map=self.color_map),
             border_color=ft.Colors.WHITE70,
             fill_color=ft.Colors.BLUE
 
         )
 
-        def on_change(e, dropdown=None, color_map=None):
+        def on_change(dropdown=None, color_map=None):
             self.set_skin(dropdown, color_map)
 
             self.func()
@@ -134,8 +133,8 @@ class LanguageSelector:
 
         self.app = app
         self.options = [
-            ft.dropdown.Option(key='English', leading_icon=ft.Image(src='https://flagcdn.com/w80/gb.png', width=24, height=24, border_radius=15, fit=ft.ImageFit.COVER)),
-            ft.dropdown.Option(key='Spanish', leading_icon=ft.Image(src='https://flagcdn.com/w80/es.png', width=24, height=24, border_radius=15, fit=ft.ImageFit.COVER))
+            ft.DropdownOption(key='English', leading_icon=ft.Image(src='https://flagcdn.com/w80/gb.png', width=24, height=24, border_radius=15, fit=ft.BoxFit.COVER)),
+            ft.DropdownOption(key='Spanish', leading_icon=ft.Image(src='https://flagcdn.com/w80/es.png', width=24, height=24, border_radius=15, fit=ft.BoxFit.COVER))
         ]
 
     def set_lang(self, dropdown):
@@ -161,41 +160,40 @@ class LanguageSelector:
     def get_lang(self):
         language = Database.get_lang()
 
+
+
         if language is not None:
             return LANGS[language]
 
         return 'English'
 
-    def on_change(self, e, dropdown):
-        self.set_lang(dropdown=dropdown)
 
     def dropdown(self):
 
         language_selector = ft.Dropdown(
             options=self.options,
             width=200,
-            #leading_icon=ft.Image(src='https://flagcdn.com/w80/gb.png', width=24, height=24, border_radius=15, fit=ft.ImageFit.COVER) if Database.get_lang() == 'en' else ft.Image(src='https://flagcdn.com/w80/es.png', width=24, height=24, border_radius=15, fit=ft.ImageFit.COVER),
+            #leading_icon=ft.Image(src='https://flagcdn.com/w80/gb.png', width=24, height=24, border_radius=15, fit=ft.BoxFit.COVER) if Database.get_lang() == 'en' else ft.Image(src='https://flagcdn.com/w80/es.png', width=24, height=24, border_radius=15, fit=ft.BoxFit.COVER),
             value=self.get_lang(),
-            on_change=lambda e: on_change(e, dropdown=language_selector),
+            on_select=lambda e: on_change(e, dropdown=language_selector),
             border_color=ft.Colors.WHITE70,
             fill_color=ft.Colors.BLUE
 
         )
 
         def on_change(e, dropdown=None):
-            from ui import lang
+            from ui_builder import lang
             self.set_lang(dropdown)
 
-            self.app.page.open(
-                    ft.AlertDialog(
-                        title=ft.Text(t('change_lang', lang)),
-                        content=ft.Text(t('restart_app', lang)),
-                        actions=[ft.TextButton(text="Okey", on_click=lambda e: self.app.page.close(e.control.parent))],
-                        bgcolor=self.app.page.bgcolor,
-
-                    )
+            restart_dialog = ft.AlertDialog(
+                title=ft.Text(t('change_lang', lang)),
+                content=ft.Text(t('restart_app', lang)),
+                actions=[ft.TextButton(content="Okey", on_click=lambda e: self.app.page.pop_dialog())],
+                bgcolor=self.app.page.bgcolor,
 
             )
+            self.app.page.show_dialog(restart_dialog)
+
 
 
 

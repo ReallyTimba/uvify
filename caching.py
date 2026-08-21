@@ -24,15 +24,15 @@ def load_json(filename):
     return
 
 
-def get_cached_places():
-    if os.path.exists(CACHE_MAP):
-        cache_age = time.time() - os.path.getmtime(CACHE_MAP)
-        if cache_age < CACHE_MAX_TIME:
-            with open(CACHE_MAP, 'r') as file:
-                return json.load(file)
-
-    return
-
-def save_cached_places(data):
-    with open(CACHE_MAP, 'w') as file:
-        json.dump(data, file)
+# def get_cached_places():
+#     if os.path.exists(CACHE_MAP):
+#         cache_age = time.time() - os.path.getmtime(CACHE_MAP)
+#         if cache_age < CACHE_MAX_TIME:
+#             with open(CACHE_MAP, 'r') as file:
+#                 return json.load(file)
+#
+#     return
+#
+# def save_cached_places(data):
+#     with open(CACHE_MAP, 'w') as file:
+#         json.dump(data, file)

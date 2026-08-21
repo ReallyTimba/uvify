@@ -13,14 +13,14 @@ class ErrorBanner:
 
         self.banner = ft.Banner(
             bgcolor=ft.Colors.AMBER_100,
-            leading=ft.Icon(name=ft.Icons.WARNING_AMBER_ROUNDED, color=ft.Colors.AMBER, size=40),
+            leading=ft.Icon(icon=ft.Icons.WARNING_AMBER_ROUNDED, color=ft.Colors.AMBER, size=40),
             content=ft.Text(
                 '',
                 color=ft.Colors.BLACK
             ),
             actions=[
                 ft.TextButton(
-                    text=t('understood', lang), style=ft.ButtonStyle(color=ft.Colors.BLUE),
+                    content=t('understood', lang), style=ft.ButtonStyle(color=ft.Colors.BLUE),
                     on_click=self.close_banner
                 )
             ],
@@ -38,12 +38,12 @@ class ErrorBanner:
 
     def trigger_banner(self):
 
-        self.app.page.open(self.banner)
+        self.app.page.show_dialog(self.banner)
 
 
 
-    def close_banner(self, e=None):
-        self.app.page.close(self.banner)
+    def close_banner(self):
+        self.app.page.pop_dialog(self.banner)
         self.ui.user_data.value = ''
         self.app.page.update()
 
@@ -61,28 +61,28 @@ class AdviceBanner:
 
         self.banner = ft.Container(
             bgcolor='#f27121',
-            padding=ft.padding.only(top=20, bottom=10),
-            margin=ft.margin.only(top=40, left=20, right=20),
+            padding=ft.Padding(top=20, bottom=10),
+            margin=ft.Margin(top=40, left=20, right=20),
 
             content=ft.Container(ft.Column(
                 [
                     ft.Row(
                         [
-                            ft.Icon(name=ft.Icons.TIPS_AND_UPDATES, color=self.ui.icon_color),
+                            ft.Icon(icon=ft.Icons.TIPS_AND_UPDATES, color=self.ui.icon_color),
                             self.advice_text
                         ],
                         alignment=ft.MainAxisAlignment.CENTER
                     ),
-                    ft.Container(ft.TextButton(text=t('hide_advices', lang,), style=ft.ButtonStyle(color=ft.Colors.WHITE, text_style=ft.TextStyle(size=16)),
-                                               on_click=self.hide_banner), alignment=ft.alignment.center_right),
+                    ft.Container(ft.TextButton(content=t('hide_advices', lang,), style=ft.ButtonStyle(color=ft.Colors.WHITE, text_style=ft.TextStyle(size=16)),
+                                               on_click=self.hide_banner), alignment=ft.Alignment.CENTER_RIGHT),
 
 
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
-                margin=ft.margin.only(left=25, right=25)
+                margin=ft.Margin(left=25, right=25)
             ),
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             border_radius=15,
 
         )

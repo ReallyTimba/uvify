@@ -3,10 +3,8 @@ import random
 import sqlite3
 import threading
 import time
-from asyncio import run
 
 import flet as ft
-import httpx
 import requests
 from db_manager import Database
 
@@ -19,9 +17,9 @@ from ui_uv_progress import SemicircleProgress
 from ui_screens import LoadingScreen, NoConnectionScreen
 from ui_banners import ErrorBanner, AdviceBanner
 from advices import ADVICES, SKIN_DESCRS
-from ui_torremap import Torremap
 from config import API
-from translations import translate_city, t
+from translations import translate_city, t, run_async
+import caching
 
 
 
@@ -33,15 +31,13 @@ class UVifyApp:
         self.page.title = 'UVify'  # window title
         self.page.theme_mode = 'dark'  # it let us change the app theme
         self.page.vertical_alignment = ft.MainAxisAlignment.CENTER  # sets vertical alignment of all the elements in the center of the window
-        # self.page.window.width = 540
-        # self.page.window.height = 960
+        # self.page.window.width = 1080
+        # self.page.window.height = 1920
 
         self.page.adaptive = True
 
         self.page.fonts = {
-            'Inter': 'assets/fonts/Inter.ttf',
-            'Roboto': 'assets/fonts/Roboto.ttf',
-            'Nunito': 'assets/fonts/Nunito.ttf'
+            'Inter': 'fonts/Inter.ttf'
         }
 
 
@@ -61,8 +57,8 @@ class UVifyApp:
 
         self.page.foreground_decoration = ft.BoxDecoration(
             image=ft.DecorationImage(
-                src="assets/icons/wallpaper.jpg",
-                fit=ft.ImageFit.COVER,
+                src="icons/wallpaper.png",
+                fit=ft.BoxFit.COVER,
                 opacity=0.15,
                 filter_quality=ft.FilterQuality.LOW
             ),
@@ -121,7 +117,7 @@ class UVifyApp:
             return
 
 
-        self.loading_screen.show_loading()
+        # self.loading_screen.show_loading()
 
 
 
@@ -137,10 +133,10 @@ class UVifyApp:
 
                 try:
 
-                    city = run(translate_city(self.ui.user_data.value)).text
+                    city = run_async(translate_city(self.ui.user_data.value)).text
                     lang_additions = '&lang=es'
 
-                except (httpx.ConnectError, requests.exceptions.ConnectionError, sqlite3.OperationalError):
+                except (requests.exceptions.ConnectionError, sqlite3.OperationalError):
                     self.noconnection.show_screen()
 
 
@@ -197,7 +193,12 @@ class UVifyApp:
             self.ui.uv_level.value = t('high_uv', lang) if uv >= 6 else t('moderate_uv', lang) if uv >= 3 else t('low_uv', lang)
             # self.ui.uv_level.color = self.ui.progress_colors[0.666] if uv >= 6 else self.ui.progress_colors[0.333] if uv >= 3 else self.ui.progress_colors[0]
 
-            self.ui.vitamin_d.content.controls[1].controls[1].value = str(calc.get_vitamin_d(uv, MED[ss.get_skin()])) + ' min'
+            v_d = calc.get_vitamin_d(uv, MED[ss.get_skin()])
+            if v_d != 'no_d':
+                self.ui.vitamin_d.content.controls[1].controls[1].value = str(v_d) + ' min'
+            else:
+                self.ui.vitamin_d.content.controls[1].controls[1].value = t('no_vitamin_d', lang)
+                self.ui.vitamin_d.content.controls[1].controls[1].size = 14
 
             # converts the uv in to a progress semicircle value
 
@@ -209,10 +210,12 @@ class UVifyApp:
 
 
 
-            self.ui.main_col.controls[1].content.controls[1].content.controls[0] = ft.Container(self.sc_progress.progress_bar, padding=ft.padding.only(left=35))
+            self.ui.main_col.controls[1].content.controls[1].content.controls[0] = ft.Container(self.sc_progress.progress_bar, padding=ft.Padding(left=35))
             # self.ui.main_col.controls[1].content.controls[2].controls.append(ft.Row([ft.Container(ft.Icon(name=ft.Icons.WARNING, size=30, color='#ea0000'), padding=ft.padding.only(right=25, bottom=10, left=10))], alignment=ft.MainAxisAlignment.END))
             if uv >= 7:
-                self.ui.main_col.controls[1].content.controls[1].content.controls[1] = ft.Container(ft.Icon(name=ft.Icons.WARNING, size=30, color='#ea0000'), padding=ft.padding.only(top=65))
+                self.ui.main_col.controls[1].content.controls[1].content.controls[1] = ft.Container(ft.Icon(icon=ft.Icons.WARNING, size=30, color='#ea0000'), padding=ft.Padding(top=65))
+            else:
+                self.ui.main_col.controls[1].content.controls[1].content.controls[1] = ft.Container()
 
 
             burn_minutes = calc.get_burn([uv, uv2, uv3], MED[ss.get_skin()])
@@ -281,11 +284,9 @@ class UVifyApp:
                 year = data['forecast']['forecastday'][i]['date'][:4]
                 month = data['forecast']['forecastday'][i]['date'][5:7]
                 day = y = data['forecast']['forecastday'][i]['date'][8:]
-                # print(year, month, day)
                 date_converter = datetime.date(int(year), int(month), int(day))
 
                 week = date_converter.isoweekday()
-                # print(week)
 
                 # Checking if the first forecast day is today
 
@@ -302,10 +303,10 @@ class UVifyApp:
                     ft.Column(
                         [
                             ft.Text(t('time', lang), size=20, color=ft.Colors.WHITE, weight=ft.FontWeight.W_500,
-                                    text_align=ft.alignment.center),
-                            ft.Image(src="assets/icons/vitamind_icon.png", color=ft.Colors.TRANSPARENT, width=80),
+                                    text_align=ft.TextAlign.CENTER),
+                            ft.Image(src="icons/vitamind_icon.png", color=ft.Colors.TRANSPARENT, width=80),
                             ft.Container(ft.Text('UV', size=20, color=ft.Colors.WHITE, weight=ft.FontWeight.W_500,
-                                                 text_align=ft.alignment.center), border_radius=15, padding=ft.padding.only(top=3, bottom=3, left=12, right=12), margin=ft.margin.only(bottom=20)
+                                                 text_align=ft.TextAlign.CENTER), border_radius=15, padding=ft.Padding(top=3, bottom=3, left=12, right=12), margin=ft.Margin(bottom=20)
                                          ),
 
                         ],
@@ -329,14 +330,14 @@ class UVifyApp:
 
                     self.ui.uv_fore.controls[i].content.content.subtitle.controls.append(ft.Column([
                         ft.Text(fore_time, size=20, color=ft.Colors.WHITE, weight=ft.FontWeight.W_500,
-                                text_align=ft.alignment.center),
+                                text_align=ft.TextAlign.CENTER),
                         ft.Image(src=str("https:" + fore_icon), width=80),
                         ft.Container(ft.Text(
                             str(fore_uv), size=20, color=uv_color, weight=ft.FontWeight.W_500,
-                            text_align=ft.alignment.center), bgcolor=ft.Colors.WHITE, border_radius=15, padding=ft.padding.only(top=3, bottom=3, left=12, right=12), margin=ft.margin.only(bottom=20)),
+                            text_align=ft.TextAlign.CENTER), bgcolor=ft.Colors.WHITE, border_radius=15, padding=ft.Padding(top=3, bottom=3, left=12, right=12), margin=ft.Margin(bottom=20)),
                         # ft.Text(
                         # str(calc.get_vitamin_d(data['forecast']['forecastday'][i]['hour'][h_index]['uv'], ss.MED[ss.get_skin()])), size=20,
-                        # text_align=ft.alignment.center),
+                        # text_align=ft.TextAlign.CENTER),
 
                     ],
                         alignment=ft.MainAxisAlignment.CENTER,
@@ -359,9 +360,6 @@ class UVifyApp:
 
             # aqi_units = " μg/m3"
 
-            # self.ui.aqi_co.value = "CO: " + str(data['current']['air_quality']['co']) + aqi_units
-            # self.ui.aqi_no2.value = "NO2: " + str(data['current']['air_quality']['no2']) + aqi_units
-            # self.ui.aqi_so2.value = "SO2: " + str(data['current']['air_quality']['so2']) + aqi_units
 
             co = float(data['current']['air_quality']['co']) / 3000
             no2 = float(data['current']['air_quality']['no2']) / 100
@@ -405,35 +403,6 @@ class UVifyApp:
             self.ui.sunrise_time.value = sunrise24
             self.ui.sunset_time.value = sunset24
 
-            # Torredembarra features
-
-            if data['location']['name'] == 'Torredembarra':
-
-                # self.ui.main_col.controls[2].controls[0].visible = True
-                self.ui.water_info.visible = True
-                self.ui.map_access.visible = True
-
-                units = 'celsius' if self.measure == 'metric' else 'fahrenheit'
-
-
-
-                WATER = f'https://marine-api.open-meteo.com/v1/marine?latitude=41.145&longitude=1.400&hourly=sea_surface_temperature&current_weather=true&temperature_unit={units}'
-                res_water = requests.get(WATER).json()
-
-                indx = int(self.ui.localtime.value[:-3])
-                water_temp = res_water['hourly']['sea_surface_temperature'][indx]
-
-
-                self.ui.water_temp.value = str(water_temp) + degrees
-
-
-            else:
-                self.ui.water_info.visible = False
-                self.ui.map_access.visible = False
-
-
-
-
 
 
             # DB UPDATE
@@ -452,9 +421,9 @@ class UVifyApp:
             if lang == 'es':
                 try:
 
-                    self.ui.user_city.content.value = run(translate_city(f"{city_name}, {country_name}", src='en', dest='es')).text
-                    self.ui.user_data.value = run(translate_city(city_name, src='en', dest='es')).text
-                except (httpx.ConnectError, requests.exceptions.ConnectionError, sqlite3.OperationalError):
+                    self.ui.user_city.content.value = run_async(translate_city(f"{city_name}, {country_name}", src='en', dest='es')).text
+                    self.ui.user_data.value = run_async(translate_city(city_name, src='en', dest='es')).text
+                except (requests.exceptions.ConnectionError, sqlite3.OperationalError):
                     self.noconnection.show_screen()
 
             db.commit()
@@ -465,14 +434,16 @@ class UVifyApp:
             if return_settings_page:
                 self.page.add(self.ui.settings_page)
 
+
             else:
                 self.page.add(self.ui.weather_page)
                 self.loading_screen.hide_loading()
+                self.page.navigation_bar.selected_index = 0
 
 
             if trigger_snack:
                 skin_description = ft.SnackBar(content=ft.Text(SKIN_DESCRS[lang][ss.get_skin()], color=ft.Colors.WHITE), bgcolor='#f27121')
-                self.page.open(skin_description)
+                self.page.show_dialog(skin_description)
 
 
         except KeyError:
@@ -570,7 +541,10 @@ class UVifyApp:
 
         self.ui.switches.controls[2].controls[0].value = f'{t('units', lang)}: {t(f'{self.measure}_units', lang)}'
 
-        self.get_weather(e)
+        if self.weather_data:
+            self.__process_weather_data(self.weather_data, False, False)
+        else:
+            self.get_weather()
 
     def toggle_advices(self, e=None, banner_hide=False):
 
@@ -624,7 +598,8 @@ class UVifyApp:
         else:
             if i == 0:
                 self.page.add(self.ui.weather_page)
-                self.set_advice(self.weather_data)
+                if self.weather_data:
+                    self.set_advice(self.weather_data)
 
             elif i == 1:
                 self.page.add(self.ui.settings_page)
@@ -660,112 +635,8 @@ class UVifyApp:
         self.page.update()
 
 
-    def torredembarra(self, e):
-
-        self.ui.user_data.value = 'Torredembarra'
-        self.set_city(e)
-
-
-    def open_map(self, e):
-
-        self.page.clean()
-        if Database.user_advices() == 1:
-            try:
-                self.advice_banner.close_banner()
-            except ValueError:
-                pass
-        self.loading_screen.show_loading()
-
-
-        # geo_shareable = bool(Database.get_geo_shared())
-        #
-        # if geo_shareable:
-        #
-        #     ph = fph.PermissionHandler()
-        #     self.page.overlay.append(ph)
-        #
-        #     def req_perm(e):
-        #         ph.request_permission(fph.PermissionType.LOCATION)
-        #
-        #         Database.not_shareable()
-        #
-        #         self.page.close(perm_dialog)
-        #
-        #
-        #     def noremind(e):
-        #         Database.not_shareable()
-        #         self.page.close(perm_dialog)
-        #
-        #     perm_dialog = ft.AlertDialog(
-        #         title=ft.Text(t('perm_title', lang)),
-        #         content=ft.Text(t('perm_descr', lang)),
-        #         actions=[
-        #             ft.TextButton(text=t('perm_action1', lang), on_click=lambda e: req_perm(e)),
-        #             ft.TextButton(text=t('perm_action2', lang), on_click=lambda e: noremind(e))
-        #         ],
-        #         bgcolor=self.page.bgcolor,
-        #
-        #     )
-        #
-        #
-        #
-        #     self.page.open(perm_dialog)
-        #
-        #     self.page.update()
-
-
-
-        # self.page.open(ft.SnackBar(content=ft.Text(ph.check_permission(ft.PermissionType.LOCATION))))
-
-
-        # 2
-        def load_map(e=None):
-            tmap = Torremap()
-
-            self.page.clean()
-
-            if tmap.class_map and not tmap.timeouted:
-
-
-
-                self.ui.torremap.controls[0] = tmap.class_map
-
-
-
-                self.page.add(self.ui.torremap)
-                self.page.update()
-
-
-
-            elif tmap.timeouted:
-
-                self.page.add(
-                    ft.Row(
-                        [
-                            self.ui.return_button,
-                            ft.Text("Could not load map.", color=ft.Colors.RED),
-
-                        ],
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-
-                    )
-                )
-
-
-            self.loading_screen.hide_loading()
-            self.page.update()
-        threading.Thread(target=load_map).start()
-
-    def return_to_main(self, e):
-
-        self.page.clean()
-        self.page.add(self.ui.weather_page)
-        self.page.update()
-
-
-
     def load_data(self):
+
         city_value = Database.get_city()
         self.ui.switches.controls[2].controls[0].value = f'{t('units', lang)}: {t(f'{self.measure}_units', lang)}'
         displayed_name = city_value
@@ -773,8 +644,9 @@ class UVifyApp:
 
         try:
 
-            displayed_name = run(translate_city(city_value, src='en', dest='es')).text if lang == 'es' else city_value
-        except:
+            displayed_name = run_async(translate_city(city_value, src='en', dest='es')).text if lang == 'es' else city_value
+        except Exception as e:
+            print(e)
             self.noconnection.show_screen()
 
         if city_value:
@@ -791,9 +663,10 @@ class UVifyApp:
 
 
 
+
 def main(page: ft.Page):
     UVifyApp(page)
 
 
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="assets") # run app
+    ft.run(main, assets_dir="assets") # run app

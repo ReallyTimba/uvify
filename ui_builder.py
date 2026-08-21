@@ -2,11 +2,9 @@ from math import pi
 from db_manager import Database
 import flet as ft
 from ui_dropdowns import SkinSelector, LanguageSelector
-from ui_torremap import Torremap
-from translations import t, translate_city
-from asyncio import run
+from translations import t, translate_city, run_async
 
-APP_VERSION = "1.4.0"
+APP_VERSION = "1.5.0"
 lang = Database.get_lang()
 
 
@@ -33,8 +31,8 @@ class UIBuilder:
         # )
 
         self.widget_color = ft.LinearGradient(
-            begin=ft.alignment.top_left,
-            end=ft.alignment.bottom_right,
+            begin=ft.Alignment.TOP_LEFT,
+            end=ft.Alignment.BOTTOM_RIGHT,
             colors=["#6f1a86", "#f27121"],
         )
 
@@ -56,7 +54,7 @@ class UIBuilder:
 
 
         self.user_data = ft.TextField(label=t('search_city', lang), color='#f27121', width=300, border_color=ft.Colors.WHITE, label_style=ft.TextStyle(color=ft.Colors.WHITE))
-        self.eg = ft.Text(t('search_example', lang), color=ft.Colors.GREY_200, size=13, text_align=ft.alignment.center, visible=False)
+        self.eg = ft.Text(t('search_example', lang), color=ft.Colors.GREY_200, size=13, text_align=ft.TextAlign.CENTER, visible=False)
 
 
 
@@ -64,20 +62,22 @@ class UIBuilder:
         # UVI
 
 
-        self.uv_spf = ft.Text('', size=15)
+        self.uv_spf = ft.Text('', size=15, text_align=ft.TextAlign.CENTER)
         self.uv_descr = ft.Text(t('uv', lang), size=20, weight=ft.FontWeight.W_700)
         self.uv_level = ft.Text('', size=20, weight=ft.FontWeight.W_700)
+
         self.vitamin_d = ft.Container(
             ft.Row(
                 [
-                    ft.Image(src='assets/icons/vitamind_icon.png', width=50, height=50),
+                    ft.Image(src='icons/vitamind_icon.png', width=50, height=50),
                     ft.Column(
                         [
-                            ft.Text(t('vitamin_d', lang), size=16),
-                            ft.Text('', size=20, weight=ft.FontWeight.W_600)
+                            ft.Text(t('vitamin_d', lang), size=16, text_align=ft.TextAlign.CENTER),
+
+                            ft.Text('', size=20, weight=ft.FontWeight.W_600, width=100),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
-                        horizontal_alignment=ft.CrossAxisAlignment.START
+                        horizontal_alignment=ft.CrossAxisAlignment.START,
                     )
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -85,7 +85,7 @@ class UIBuilder:
 
             ),
 
-            alignment=ft.alignment.center, gradient=self.widget_color, border_radius=15, expand=True,
+            alignment=ft.Alignment.CENTER, gradient=self.widget_color, border_radius=15, expand=True,
             # padding=ft.padding.only(top=36, bottom=36, left=-30)
             width=self.app.page.width*0.5,
             height=130
@@ -96,7 +96,7 @@ class UIBuilder:
         self.burntime_widget = ft.Container(
             ft.Row(
                 [
-                    ft.Image(src='assets/icons/burntime_icon.png', width=50, height=50),
+                    ft.Image(src='icons/burntime_icon.png', width=50, height=50),
                     ft.Column(
                         [
                             ft.Text(t('time_till_burn', lang), width=150, text_align=ft.TextAlign.START, size=16),
@@ -120,7 +120,7 @@ class UIBuilder:
 
         self.weather_descr = ft.Text('', size=16, no_wrap=False, expand=True, width=110)
         self.weather_icon = ft.Image(src="", width=55,
-                                     visible=False, fit=ft.ImageFit.SCALE_DOWN)
+                                     visible=False, fit=ft.BoxFit.SCALE_DOWN)
         self.act_temp = ft.Text('', size=20, weight=ft.FontWeight.W_700)
 
         self.general_data = ft.Container(
@@ -130,7 +130,7 @@ class UIBuilder:
                     ft.Column(
                         [
                             ft.Container(self.act_temp,),
-                            ft.Container(self.weather_descr, padding=ft.padding.only(top=-10))
+                            ft.Container(self.weather_descr, padding=ft.Padding(top=-10))
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.START,
@@ -146,7 +146,7 @@ class UIBuilder:
             gradient=self.widget_color,
             border_radius=15,
             expand=True,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             # width=150,
             height=90,
 
@@ -159,7 +159,7 @@ class UIBuilder:
             ft.Column(
                 [
                     ft.Text(t('current_time', lang), size=16, text_align=ft.TextAlign.CENTER),
-                    ft.Container(self.localtime, padding=ft.padding.only(top=-8))
+                    ft.Container(self.localtime, padding=ft.Padding(top=-8))
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
@@ -167,13 +167,12 @@ class UIBuilder:
             gradient=self.widget_color,
             expand=True,
             border_radius=15,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             height=90,
             # padding=ft.padding.only(top=20, bottom=20),
 
         )
 
-        self.water_temp = ft.Text('', size=22, weight=ft.FontWeight.BOLD)
 
         # Wind
 
@@ -206,11 +205,11 @@ class UIBuilder:
         self.air_progress = ft.Container(
             ft.Row(
                 [
-                    ft.Column([ft.Container(ft.Text('CO', size=19, weight=ft.FontWeight.W_500), padding=ft.padding.only(bottom=25)), self.progress_co, ft.Container(self.co_level, padding=ft.padding.only(top=30))],
+                    ft.Column([ft.Container(ft.Text('CO', size=19, weight=ft.FontWeight.W_500), padding=ft.Padding(bottom=25)), self.progress_co, ft.Container(self.co_level, padding=ft.Padding(top=30))],
                               horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=1),
-                    ft.Column([ft.Container(ft.Text('NO2', size=19, weight=ft.FontWeight.W_500), padding=ft.padding.only(bottom=25)), self.progress_no2, ft.Container(self.no2_level, padding=ft.padding.only(top=30))],
+                    ft.Column([ft.Container(ft.Text('NO2', size=19, weight=ft.FontWeight.W_500), padding=ft.Padding(bottom=25)), self.progress_no2, ft.Container(self.no2_level, padding=ft.Padding(top=30))],
                               horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=1),
-                    ft.Column([ft.Container(ft.Text('SO2', size=19, weight=ft.FontWeight.W_500), padding=ft.padding.only(bottom=25)), self.progress_so2, ft.Container(self.so2_level, padding=ft.padding.only(top=30))],
+                    ft.Column([ft.Container(ft.Text('SO2', size=19, weight=ft.FontWeight.W_500), padding=ft.Padding(bottom=25)), self.progress_so2, ft.Container(self.so2_level, padding=ft.Padding(top=30))],
                               horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=1)
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -219,10 +218,10 @@ class UIBuilder:
 
 
             ),
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             bgcolor=ft.Colors.TRANSPARENT, border_radius=15,
-            padding=ft.padding.only(top=20, bottom=0), expand=True,
-            margin=ft.margin.only(left=35, right=35)
+            padding=ft.Padding(top=20, bottom=0), expand=True,
+            margin=ft.Margin(left=35, right=35)
 
         )
 
@@ -236,21 +235,22 @@ class UIBuilder:
 
         # Buttons
 
-        self.set_button = ft.Container(content=ft.ElevatedButton(text=t('set_button', lang), color=ft.Colors.WHITE, on_click=lambda e: self.app.set_city(e), bgcolor='#f27121', style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=15))),
-                                       alignment=ft.alignment.center,
-                                       padding=ft.padding.only(top=20),
+        self.set_button = ft.Container(content=ft.ElevatedButton(content=t('set_button', lang), color=ft.Colors.WHITE, on_click=lambda e: self.app.set_city(e), bgcolor='#f27121', style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=15))),
+                                       alignment=ft.Alignment.CENTER,
+                                       padding=ft.Padding(top=20),
 
                                        )
 
         city_from_db = Database.get_city()
         displayed_city = city_from_db
         try:
-            displayed_city = run(translate_city(city_from_db, src='en', dest='es')).text if lang == 'es' else city_from_db
-        except:
+            displayed_city = run_async(translate_city(city_from_db, src='en', dest='es')).text if lang == 'es' else city_from_db
+        except Exception as e:
+            print(e)
             self.noconnection.show_screen()
 
 
-        self.city_text = ft.Container(ft.Text(t('your_city', lang), size=16), padding=ft.padding.only(left=8))
+        self.city_text = ft.Container(ft.Text(t('your_city', lang), size=16), padding=ft.Padding(left=8))
         self.user_city = ft.TextButton(content=ft.Text(str(displayed_city), color='#f27121', size=16),
                                        style=ft.ButtonStyle(overlay_color=ft.Colors.TRANSPARENT),
                                        on_click=lambda e: self.app.reset_city(e))
@@ -260,8 +260,8 @@ class UIBuilder:
                 [
                     ft.Row(
                         [
-                            ft.Icon(name=ft.Icons.AIR, size=35, color=ft.Colors.WHITE),
-                            ft.Text(t('wind', lang), size=16)
+                            ft.Icon(icon=ft.Icons.AIR, size=35, color=ft.Colors.WHITE),
+                            ft.Text(t('wind', lang), size=16, no_wrap=False, width=110)
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER
@@ -272,39 +272,20 @@ class UIBuilder:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
             ),
             gradient=self.widget_color, border_radius=15,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment.CENTER,
             expand=True,
             # padding=ft.padding.only(top=40, bottom=40),
             height=150
 
         )
 
-        # self.wind_info = ft.Container(
-        #     ft.Row(
-        #         [
-        #             ft.Container(ft.Icon(name=ft.Icons.AIR, size=35, color=ft.Colors.WHITE), padding=ft.padding.only(bottom=70)),
-        #             ft.Column(
-        #                 [
-        #                     ft.Text(t('wind', lang), size=16),
-        #                     self.wind_vel
-        #                 ],
-        #                 alignment=ft.MainAxisAlignment.START
-        #             )
-        #         ],
-        #         alignment=ft.MainAxisAlignment.CENTER
-        #     ),
-        #
-        #     gradient=self.widget_color, border_radius=15,
-        #     padding=ft.padding.only(top=40, bottom=40), expand=True
-        # )
 
-        # self.sun_info = ft.Container(ft.Column([ft.Row([ft.Icon(name=ft.Icons.WB_TWIGHLIGHT, size=35, color=ft.Colors.YELLOW_800), ft.Text(t('sun', lang), size=14, weight=ft.FontWeight.W_600, opacity=0.8)], alignment=ft.MainAxisAlignment.CENTER), ft.Row([self.sunrise, self.sunrise_time], alignment=ft.MainAxisAlignment.CENTER), ft.Row([self.sunset, self.sunset_time], alignment=ft.MainAxisAlignment.CENTER)], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER), gradient=self.widget_color, border_radius=15, padding=ft.padding.only(top=25, bottom=25), expand=True)
         self.sun_info = ft.Container(
             ft.Column(
                 [
                     ft.Row(
                         [
-                            ft.Icon(name=ft.Icons.WB_TWIGHLIGHT, size=35, color='#f9d623'),
+                            ft.Icon(icon=ft.Icons.WB_TWIGHLIGHT, size=35, color='#f9d623'),
                             ft.Text(t('sun', lang), size=16)
                         ],
                         alignment=ft.MainAxisAlignment.CENTER
@@ -341,11 +322,6 @@ class UIBuilder:
             border_radius=15, padding=30, expand=True
         )
 
-        self.water_info = ft.Container(
-            ft.Column([ft.Row([ft.Icon(name=ft.Icons.WATER_DROP, size=30, color='#00bfff'), ft.Text(t('water', lang), size=16)], alignment=ft.MainAxisAlignment.CENTER), ft.Row([self.water_temp], alignment=ft.MainAxisAlignment.CENTER, expand=True)],
-                      alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            gradient=self.widget_color, border_radius=15, width=400, padding=ft.padding.only(top=34, bottom=34), expand=True, visible=False
-        )
 
         self.uv_colors = {
             0: ft.Colors.GREEN,
@@ -424,72 +400,13 @@ class UIBuilder:
             ]
         )
 
-        # TORREDEMBARRA MAP
-
-
-        tmap = Torremap()
-
-
-        self.map_button = ft.Container(
-            content=ft.TextButton(content=ft.Text(t('open_map', lang), size=18, text_align=ft.TextAlign.CENTER, opacity=0.8, color=ft.Colors.WHITE, weight=ft.FontWeight.W_500), on_click=self.app.open_map),
-
-            alignment=ft.alignment.center,
-
-        )
-
         self.coords = ft.Container(ft.Text('Coords: '))
-
-        self.return_button = ft.Container(
-            content=ft.IconButton(icon=ft.Icons.ARROW_BACK, icon_size=40, icon_color='#f27121',
-                                  on_click=lambda e: self.app.return_to_main(e)),
-            bgcolor=ft.Colors.WHITE,
-
-            border_radius=15,
-            alignment=ft.alignment.center_left,
-            width=55
-        )
-
-        self.map_access = ft.Container(
-            # ft.Column(
-            # [
-            #     ft.IconButton(icon=ft.Icons.MAP, style=ft.ButtonStyle(color=self.icon_color, icon_size=32), on_click=lambda e: self.app.open_map(e)),
-            #     self.map_button
-            # ],
-            ft.Row([
-                # ft.IconButton(icon=ft.Icons.SEARCH, icon_size=30, icon_color=ft.Colors.WHITE),
-                ft.Icon(ft.Icons.SEARCH, size=30, color=ft.Colors.WHITE),
-                self.map_button,
-            ],
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.CENTER,
-                expand=True
-            ),
-
-            alignment=ft.alignment.center, #gradient=self.widget_color,
-            border_radius=15, padding=ft.padding.only(top=20, bottom=20), expand=True,
-            bgcolor=ft.Colors.with_opacity(0.6, ft.Colors.PURPLE),
-
-        )
-
-        self.torremap = ft.Column(
-            [
-                ft.Container(None, expand=True),
-
-                self.return_button,
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            expand=True,
-        )
-
 
 
 
         self.title_row_weather = ft.Row(
             [
                 ft.Column([self.city_text, self.user_city], alignment=ft.MainAxisAlignment.START),
-                # ft.Row([self.theme_button, ft.Text('Theme')],
-                #        alignment=ft.MainAxisAlignment.CENTER
-                #        )
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN
 
@@ -511,7 +428,7 @@ class UIBuilder:
                     ft.Text(t('advices', lang), size=14, color=ft.Colors.WHITE),
                     ft.CupertinoSwitch(
                         value=advices_enabled,
-                        active_color=ft.Colors.BLUE,
+                        active_track_color=ft.Colors.BLUE,
                         on_change=lambda e: self.app.toggle_advices(e)
                     ),
                 ],
@@ -528,7 +445,7 @@ class UIBuilder:
                     ft.CupertinoSwitch(
                         value=state,
                         inactive_track_color=ft.Colors.RED,
-                        active_color=ft.Colors.BLUE,
+                        active_track_color=ft.Colors.BLUE,
                         on_change=lambda e: self.app.change_system(e)
                     ),
                 ],
@@ -543,11 +460,9 @@ class UIBuilder:
         self.main_col = ft.Column(  # ALL THE WEATHER INFO IS HERE
             [
                 ft.Row([self.time_widget, self.general_data], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Container(ft.Column([ft.Container(ft.Row([self.uv_descr, self.uv_level], alignment=ft.MainAxisAlignment.CENTER), padding=ft.padding.only(bottom=15)), ft.Container(ft.Row([ft.Container(), ft.Icon()], alignment=ft.MainAxisAlignment.CENTER, vertical_alignment=ft.CrossAxisAlignment.CENTER)), ft.Row([self.uv_spf], alignment=ft.MainAxisAlignment.CENTER)], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER), alignment=ft.alignment.center, border_radius=15, padding=ft.padding.only(top=20, bottom=20), gradient=self.widget_color),
+                ft.Container(ft.Column([ft.Container(ft.Row([self.uv_descr, self.uv_level], alignment=ft.MainAxisAlignment.CENTER), padding=ft.Padding(bottom=15)), ft.Container(ft.Row([ft.Container(), ft.Icon(icon=ft.Icons.HELP_OUTLINE)], alignment=ft.MainAxisAlignment.CENTER, vertical_alignment=ft.CrossAxisAlignment.CENTER)), ft.Row([self.uv_spf], alignment=ft.MainAxisAlignment.CENTER)], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER), alignment=ft.Alignment.CENTER, border_radius=15, padding=ft.Padding(top=20, bottom=20), gradient=self.widget_color),
                 ft.Row([self.vitamin_d, self.burntime_widget], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Row([self.map_access], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Container(self.uv_fore, border_radius=15, alignment=ft.alignment.center, bgcolor=ft.Colors.TRANSPARENT),
-                ft.Row([self.water_info], alignment=ft.MainAxisAlignment.CENTER),
+                ft.Container(self.uv_fore, border_radius=15, alignment=ft.Alignment.CENTER, bgcolor=ft.Colors.TRANSPARENT),
                 ft.Row([self.wind_info, self.sun_info], alignment=ft.MainAxisAlignment.CENTER),
                 ft.Row([self.air_info], alignment=ft.MainAxisAlignment.CENTER),
 
@@ -567,7 +482,7 @@ class UIBuilder:
 
         self.welcome_page = ft.Container(
             expand=True,
-            padding=ft.padding.only(top=20),
+            padding=ft.Padding(top=20),
             content=ft.Column(
                 [
                     ft.Container(ft.Text(
@@ -577,17 +492,17 @@ class UIBuilder:
                         color=ft.Colors.WHITE,
                         text_align=ft.TextAlign.CENTER
                     ),
-                        padding=ft.padding.only(top=30)
+                        padding=ft.Padding(top=30)
                     ),
                     ft.Container(
                         content=ft.Icon(
-                            name=ft.Icons.SUNNY,
+                            icon=ft.Icons.SUNNY,
                             color='#f27121',
                             size=160
 
                         ),
-                        padding=ft.padding.only(top=30, bottom=20),
-                        alignment=ft.alignment.center
+                        padding=ft.Padding(top=30, bottom=20),
+                        alignment=ft.Alignment.CENTER
                     ),
 
                     ft.Divider(height=70, color=ft.Colors.TRANSPARENT),
@@ -606,7 +521,7 @@ class UIBuilder:
                                 ),
                                 on_click=self.app.get_started
                             ),
-                            ft.Container(content=self.eg, alignment=ft.alignment.center),
+                            ft.Container(content=self.eg, alignment=ft.Alignment.CENTER),
 
                             ft.TextButton(
                                 t('from_torre', lang),
@@ -614,7 +529,7 @@ class UIBuilder:
                                 style=ft.ButtonStyle(
                                     color=ft.Colors.WHITE,
                                     overlay_color=ft.Colors.TRANSPARENT,
-                                    padding=ft.padding.symmetric(vertical=5)
+                                    padding=ft.Padding.symmetric(vertical=5)
                                 )
                             )
 
@@ -632,7 +547,7 @@ class UIBuilder:
         self.welcome_updated = ft.Column(
             [
                 ft.Row([self.user_data], alignment=ft.MainAxisAlignment.CENTER),
-                ft.Container(content=self.eg, alignment=ft.alignment.center),
+                ft.Container(content=self.eg, alignment=ft.Alignment.CENTER),
                 self.set_button,
 
 
@@ -648,7 +563,7 @@ class UIBuilder:
 
                 # ft.Image(
                 # src="assets/icons/wallpaper1.jpg",
-                # fit=ft.ImageFit.COVER,
+                # fit=ft.BoxFit.COVER,
                 # opacity=0.15,
                 # filter_quality=ft.FilterQuality.HIGH,
                 # expand=True
@@ -656,7 +571,7 @@ class UIBuilder:
 
                 ft.Container(
                     ft.Column([
-                        ft.Container(self.title_row_weather, padding=ft.padding.only(bottom=25, top=30)),
+                        ft.Container(self.title_row_weather, padding=ft.Padding(bottom=25, top=30)),
                         self.main_col
                     ],
                         alignment=ft.MainAxisAlignment.START,
@@ -691,7 +606,7 @@ class UIBuilder:
                         ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                         padding=10,
                         width=300,
-                        alignment=ft.alignment.center
+                        alignment=ft.Alignment.CENTER
                     ),
 
                     ft.Container(

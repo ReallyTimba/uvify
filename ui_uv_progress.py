@@ -146,8 +146,8 @@ class SemicircleProgress:
                 ),
                 ft.Container(
                     content=ft.Text(f"{self.uv_index}", size=36, weight=ft.FontWeight.W_700),
-                    padding=ft.padding.only(top=-42),
-                    alignment=ft.alignment.center,
+                    padding=ft.Padding(top=-42),
+                    alignment=ft.Alignment.CENTER,
                 ),
             ],
         )

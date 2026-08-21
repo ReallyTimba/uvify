@@ -1,4 +1,6 @@
 from googletrans import Translator
+import asyncio
+import concurrent.futures
 
 TRANSLATIONS = {
     'en': {
@@ -12,6 +14,7 @@ TRANSLATIONS = {
         'moderate_uv': 'Moderate',
         'low_uv': 'Low',
         'vitamin_d': 'Vitamin D',
+        'no_vitamin_d': 'Vitamin D synthesis unlikely',
         'time_till_burn': 'Time till burn',
         'air_low': 'Low',
         'air_moderate': 'Moderate',
@@ -60,10 +63,10 @@ TRANSLATIONS = {
         'olive': 'Olive',
         'brown': 'Brown',
         'dark_brown': 'Dark Brown',
-        'perm_title': 'Geolocation request',
-        'perm_descr': 'If you want to see your location on the map (optional), please allow the app to access your location.',
-        'perm_action1': 'Request access',
-        'perm_action2': 'Never remind',
+        # 'perm_title': 'Geolocation request',
+        # 'perm_descr': 'If you want to see your location on the map (optional), please allow the app to access your location.',
+        # 'perm_action1': 'Request access',
+        # 'perm_action2': 'Never remind',
 
 
     },
@@ -80,6 +83,7 @@ TRANSLATIONS = {
         'low_uv': 'Bajo',
         'vitamin_d': 'Vitamina D',
         'time_till_burn': 'Tiempo hasta quemarse',
+        'no_vitamin_d': 'Síntesis de vitamina D poco probable',
         'air_low': 'Baja',
         'air_moderate': 'Moderada',
         'air_high': 'Alta',
@@ -127,10 +131,10 @@ TRANSLATIONS = {
         'olive': 'Oliva',
         'brown': 'Castaño',
         'dark_brown': 'Castaño oscuro',
-        'perm_title': 'Solicitud de geolocalización',
-        'perm_descr': 'Si desea ver su ubicación en el mapa (opcional), permita que la aplicación acceda a ella',
-        'perm_action1': 'Solicitar acceso',
-        'perm_action2': 'No recordar',
+        # 'perm_title': 'Solicitud de geolocalización',
+        # 'perm_descr': 'Si desea ver su ubicación en el mapa (opcional), permita que la aplicación acceda a ella',
+        # 'perm_action1': 'Solicitar acceso',
+        # 'perm_action2': 'No recordar',
     }
 }
 
@@ -152,7 +156,9 @@ async def translate_city(text, src='es', dest='en'):
 
     return result
 
-
+def run_async(coro):
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        return pool.submit(lambda: asyncio.run(coro)).result()
 
 
 

@@ -1,0 +1,8 @@
+.idea/
+__pycache__/
+data.db1
+release/
+test/
+uvify-release-key.jks
+versions/
+pyproject.toml

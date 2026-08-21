@@ -15,7 +15,7 @@ class LoadingScreen:
             ),
             visible=False,
             expand=True,
-            alignment=ft.alignment.center
+            alignment=ft.Alignment.CENTER
         )
 
 
